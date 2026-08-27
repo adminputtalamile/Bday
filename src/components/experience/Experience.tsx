@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { BirthdayData } from '../../types'
 import Opening from './scenes/Opening'
@@ -24,7 +24,6 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   const [runId, setRunId] = useState(0)
   const [hiddenRevealed, setHiddenRevealed] = useState(false)
   const [countdownRevealed, setCountdownRevealed] = useState(false)
-  const touchStartX = useRef<number | null>(null)
   const music = useBackgroundMusic(data.musicUrl)
 
   const captionedPhotos = useMemo(() => data.photos.filter((p) => p.caption?.trim()), [data.photos])
@@ -64,16 +63,6 @@ export default function Experience({ data, topAction }: ExperienceProps) {
     setRunId((r) => r + 1)
   }
 
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX
-  }
-  function onTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    if (Math.abs(delta) > 60) (delta < 0 ? next : prev)()
-    touchStartX.current = null
-  }
-
   const current = scenes[index]
 
   if (!started) {
@@ -93,12 +82,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   }
 
   return (
-    <div
-      key={runId}
-      className="fixed inset-0 select-none"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
+    <div key={runId} className="fixed inset-0 select-none">
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
