@@ -1,15 +1,13 @@
 import { motion } from 'framer-motion'
 import type { PhotoItem } from '../../../types'
-import ContinueButton from '../ContinueButton'
 
 interface MemoryTimelineProps {
   photos: PhotoItem[]
-  onContinue: () => void
 }
 
-export default function MemoryTimeline({ photos, onContinue }: MemoryTimelineProps) {
+export default function MemoryTimeline({ photos }: MemoryTimelineProps) {
   return (
-    <div className="relative h-full w-full overflow-y-auto bg-void px-5 py-16 styled-scroll sm:px-10">
+    <div className="relative h-full w-full overflow-y-auto bg-void px-5 pb-32 pt-16 styled-scroll sm:px-10">
       <motion.h2
         initial={{ opacity: 0, y: -12 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -52,10 +50,6 @@ export default function MemoryTimeline({ photos, onContinue }: MemoryTimelinePro
             </motion.div>
           ))}
         </div>
-      </div>
-
-      <div className="mt-16 flex justify-center pb-10">
-        <ContinueButton onClick={onContinue} label="Keep going" />
       </div>
     </div>
   )

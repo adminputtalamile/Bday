@@ -1,31 +1,33 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PhotoItem } from '../../../types'
-import ContinueButton from '../ContinueButton'
 import Sparkles from '../../effects/Sparkles'
 
 interface CountdownProps {
   photo: PhotoItem
-  onContinue: () => void
+  onReveal?: () => void
 }
 
-export default function Countdown({ photo, onContinue }: CountdownProps) {
+export default function Countdown({ photo, onReveal }: CountdownProps) {
   const [count, setCount] = useState<number | null>(3)
 
   useEffect(() => {
     if (count === null) return
     if (count === 0) {
-      const t = setTimeout(() => setCount(null), 500)
+      const t = setTimeout(() => {
+        setCount(null)
+        onReveal?.()
+      }, 500)
       return () => clearTimeout(t)
     }
     const t = setTimeout(() => setCount((c) => (c ?? 1) - 1), 850)
     return () => clearTimeout(t)
-  }, [count])
+  }, [count, onReveal])
 
   const revealed = count === null
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 text-center">
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 pb-32 text-center">
       {!revealed && (
         <motion.p
           initial={{ opacity: 0 }}
@@ -65,9 +67,6 @@ export default function Countdown({ photo, onContinue }: CountdownProps) {
           {photo.caption && (
             <p className="mt-6 font-script text-xl italic text-ink/90">“{photo.caption}”</p>
           )}
-          <div className="flex justify-center">
-            <ContinueButton onClick={onContinue} label="I'm ready" delay={0.6} />
-          </div>
         </motion.div>
       )}
     </div>

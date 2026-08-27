@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import type { PhotoItem } from '../../../types'
 import ParticlesBackground from '../../effects/ParticlesBackground'
 import Sparkles from '../../effects/Sparkles'
 import FloatingHearts from '../../effects/FloatingHearts'
+import BookMessage from '../BookMessage'
+import { paginateMessage } from '../../../lib/paginateMessage'
 import { grandFinaleConfetti } from '../../../lib/confetti'
 
 interface FinaleProps {
@@ -15,13 +17,15 @@ interface FinaleProps {
 }
 
 export default function Finale({ recipientName, senderName, finalMessage, photo, onRestart }: FinaleProps) {
+  const pages = useMemo(() => paginateMessage(finalMessage), [finalMessage])
+
   useEffect(() => {
     const t = setTimeout(() => grandFinaleConfetti(), 900)
     return () => clearTimeout(t)
   }, [])
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 py-16 text-center">
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 pb-32 pt-16 text-center">
       <ParticlesBackground />
       <Sparkles count={70} />
       <FloatingHearts count={18} />
@@ -48,14 +52,16 @@ export default function Finale({ recipientName, senderName, finalMessage, photo,
         <span className="text-gradient-gold italic">{recipientName || 'You'}</span> ❤️
       </motion.h1>
 
-      <motion.p
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 1 }}
-        className="mx-auto mt-8 max-w-xl font-script text-xl italic leading-relaxed text-ink/90 sm:text-2xl"
-      >
-        {finalMessage}
-      </motion.p>
+      {pages.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 1 }}
+          className="mx-auto mt-8 w-full max-w-xl"
+        >
+          <BookMessage pages={pages} compact />
+        </motion.div>
+      )}
 
       <motion.p
         initial={{ opacity: 0 }}

@@ -1,17 +1,18 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Sparkles from '../../effects/Sparkles'
-import ContinueButton from '../ContinueButton'
+import BookMessage from '../BookMessage'
+import { paginateMessage } from '../../../lib/paginateMessage'
 import { burstConfetti } from '../../../lib/confetti'
 
 interface HiddenMessageProps {
   message: string
   onReveal?: () => void
-  onContinue: () => void
 }
 
-export default function HiddenMessage({ message, onReveal, onContinue }: HiddenMessageProps) {
+export default function HiddenMessage({ message, onReveal }: HiddenMessageProps) {
   const [revealed, setRevealed] = useState(false)
+  const pages = useMemo(() => paginateMessage(message), [message])
 
   function reveal() {
     setRevealed(true)
@@ -20,7 +21,7 @@ export default function HiddenMessage({ message, onReveal, onContinue }: HiddenM
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 text-center">
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-void px-6 pb-32 text-center">
       <Sparkles count={30} />
 
       <AnimatePresence mode="wait">
@@ -46,15 +47,13 @@ export default function HiddenMessage({ message, onReveal, onContinue }: HiddenM
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="glass-card glow-gold max-w-xl rounded-3xl px-8 py-10 sm:px-14 sm:py-14"
+            className="w-full max-w-xl"
           >
             <p className="mb-4 text-3xl">✨</p>
-            <p className="font-script text-2xl italic leading-relaxed text-ink sm:text-3xl">{message}</p>
+            <BookMessage pages={pages} compact />
           </motion.div>
         )}
       </AnimatePresence>
-
-      {revealed && <ContinueButton onClick={onContinue} delay={0.4} />}
     </div>
   )
 }

@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PhotoItem } from '../../../types'
-import ContinueButton from '../ContinueButton'
 import { useReducedMotion } from '../../../hooks/useReducedMotion'
 
 interface SlideshowProps {
   photos: PhotoItem[]
-  onContinue: () => void
 }
 
 const KEN_BURNS_VARIANTS = [
@@ -15,7 +13,7 @@ const KEN_BURNS_VARIANTS = [
   { from: { scale: 1.05, x: 8, y: 8 }, to: { scale: 1.22, x: -8, y: -14 } },
 ]
 
-export default function Slideshow({ photos, onContinue }: SlideshowProps) {
+export default function Slideshow({ photos }: SlideshowProps) {
   const [index, setIndex] = useState(0)
   const reduced = useReducedMotion()
 
@@ -51,7 +49,7 @@ export default function Slideshow({ photos, onContinue }: SlideshowProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-5 px-6 pb-28 text-center">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-5 px-6 pb-32 text-center">
         {photo.caption && (
           <motion.p
             key={photo.id + '-cap'}
@@ -74,7 +72,6 @@ export default function Slideshow({ photos, onContinue }: SlideshowProps) {
             />
           ))}
         </div>
-        <ContinueButton onClick={onContinue} label="One more surprise" />
       </div>
     </div>
   )

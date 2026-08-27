@@ -9,7 +9,7 @@ import HiddenMessage from './scenes/HiddenMessage'
 import Countdown from './scenes/Countdown'
 import Finale from './scenes/Finale'
 import SceneNav from './SceneNav'
-import MusicPlayer from './MusicPlayer'
+import { useBackgroundMusic } from '../../hooks/useBackgroundMusic'
 
 type SceneKey = 'opening' | 'greeting' | 'timeline' | 'slideshow' | 'hidden' | 'countdown' | 'finale'
 
@@ -23,7 +23,9 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   const [index, setIndex] = useState(0)
   const [runId, setRunId] = useState(0)
   const [hiddenRevealed, setHiddenRevealed] = useState(false)
+  const [countdownRevealed, setCountdownRevealed] = useState(false)
   const touchStartX = useRef<number | null>(null)
+  const music = useBackgroundMusic(data.musicUrl)
 
   const captionedPhotos = useMemo(() => data.photos.filter((p) => p.caption?.trim()), [data.photos])
   const favoritePhoto =
@@ -40,8 +42,14 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   }, [captionedPhotos.length, data.photos.length, data.specialMessage])
 
   const goTo = useCallback(
-    (i: number) => setIndex(Math.max(0, Math.min(scenes.length - 1, i))),
-    [scenes.length],
+    (i: number) => {
+      const clamped = Math.max(0, Math.min(scenes.length - 1, i))
+      const target = scenes[clamped]
+      if (target !== 'hidden') setHiddenRevealed(false)
+      if (target !== 'countdown') setCountdownRevealed(false)
+      setIndex(clamped)
+    },
+    [scenes],
   )
   const next = useCallback(() => goTo(index + 1), [goTo, index])
   const prev = useCallback(() => goTo(index - 1), [goTo, index])
@@ -49,6 +57,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   function handleRestart() {
     setIndex(0)
     setHiddenRevealed(false)
+    setCountdownRevealed(false)
     setRunId((r) => r + 1)
   }
 
@@ -62,20 +71,23 @@ export default function Experience({ data, topAction }: ExperienceProps) {
     touchStartX.current = null
   }
 
+  const current = scenes[index]
+
   if (!started) {
     return (
       <div key={runId} className="fixed inset-0">
         <Opening
           recipientName={data.recipientName}
           senderName={data.senderName}
-          onBegin={() => setStarted(true)}
+          onBegin={() => {
+            music.start()
+            setStarted(true)
+          }}
         />
         {topAction && <TopAction {...topAction} />}
       </div>
     )
   }
-
-  const current = scenes[index]
 
   return (
     <div
@@ -93,20 +105,14 @@ export default function Experience({ data, topAction }: ExperienceProps) {
           transition={{ duration: 0.5 }}
           className="absolute inset-0"
         >
-          {current === 'greeting' && (
-            <Greeting recipientName={data.recipientName} message={data.message} onContinue={next} />
-          )}
-          {current === 'timeline' && <MemoryTimeline photos={captionedPhotos} onContinue={next} />}
-          {current === 'slideshow' && <Slideshow photos={data.photos} onContinue={next} />}
+          {current === 'greeting' && <Greeting recipientName={data.recipientName} message={data.message} />}
+          {current === 'timeline' && <MemoryTimeline photos={captionedPhotos} />}
+          {current === 'slideshow' && <Slideshow photos={data.photos} />}
           {current === 'hidden' && (
-            <HiddenMessage
-              message={data.specialMessage}
-              onReveal={() => setHiddenRevealed(true)}
-              onContinue={next}
-            />
+            <HiddenMessage message={data.specialMessage} onReveal={() => setHiddenRevealed(true)} />
           )}
           {current === 'countdown' && favoritePhoto && (
-            <Countdown photo={favoritePhoto} onContinue={next} />
+            <Countdown photo={favoritePhoto} onReveal={() => setCountdownRevealed(true)} />
           )}
           {current === 'finale' && (
             <Finale
@@ -120,18 +126,20 @@ export default function Experience({ data, topAction }: ExperienceProps) {
         </motion.div>
       </AnimatePresence>
 
-      {current !== 'finale' && (
-        <SceneNav
-          total={scenes.length}
-          index={index}
-          onGo={goTo}
-          onPrev={prev}
-          onNext={next}
-          hideNext={current === 'hidden' && !hiddenRevealed}
-        />
-      )}
+      <SceneNav
+        total={scenes.length}
+        index={index}
+        onGo={goTo}
+        onPrev={prev}
+        onNext={next}
+        hideNext={
+          (current === 'hidden' && !hiddenRevealed) || (current === 'countdown' && !countdownRevealed)
+        }
+        showMute={Boolean(data.musicUrl)}
+        muted={music.muted}
+        onToggleMute={music.toggleMute}
+      />
 
-      {data.musicUrl && <MusicPlayer src={data.musicUrl} />}
       {topAction && <TopAction {...topAction} />}
     </div>
   )
