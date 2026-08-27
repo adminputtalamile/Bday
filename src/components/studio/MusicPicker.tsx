@@ -2,7 +2,9 @@ import { useRef, useState } from 'react'
 import { inputClass } from './FormField'
 import { fileToDataUrl } from '../../lib/file'
 import { dataUrlSizeKb } from '../../lib/imageCompress'
+import { uploadToBlob } from '../../lib/blobUpload'
 import { isDriveDirectUrl, toDriveDirectUrl } from '../../lib/driveLink'
+import { makeId } from '../../lib/id'
 
 interface MusicPickerProps {
   value: string
@@ -11,14 +13,16 @@ interface MusicPickerProps {
 
 type Mode = 'link' | 'upload'
 
-// Uploaded audio is base64-encoded straight into the share link's URL, with no
-// compression possible for audio the way photos get compressed. Anything much
-// bigger than this produces a URL long enough to fail to open in practice —
-// this is deliberately sized for a short sound bite, not a song.
-const MAX_UPLOAD_BYTES = 600 * 1024 // 600 KB
+// Uploads go to real online storage first (any reasonable file size works
+// there). Only if that's unavailable do we fall back to embedding the file
+// straight into the share link's URL — and that fallback has to stay tiny,
+// since there's no compression for audio the way there is for photos, and a
+// large embedded file produces a URL too long to open in practice.
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 // 20 MB — ceiling when storage is available
+const MAX_EMBED_BYTES = 600 * 1024 // 600 KB — ceiling for the fallback, embedded path
 
 export default function MusicPicker({ value, onChange }: MusicPickerProps) {
-  const isUpload = value.startsWith('data:')
+  const isUpload = value.startsWith('data:') || value.includes('.blob.vercel-storage.com')
   const [mode, setMode] = useState<Mode>(isUpload ? 'upload' : 'link')
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
@@ -38,12 +42,24 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
     setError('')
     if (file.size > MAX_UPLOAD_BYTES) {
       setError(
-        `That file is ${(file.size / 1024).toFixed(0)} KB — please keep uploads under ${Math.round(MAX_UPLOAD_BYTES / 1024)} KB (a short clip, not a full song), or use a hosted link instead.`,
+        `That file is ${(file.size / 1024 / 1024).toFixed(1)} MB — please keep uploads under ${MAX_UPLOAD_BYTES / 1024 / 1024} MB, or use a hosted link instead.`,
       )
       return
     }
     setBusy(true)
     try {
+      const uploaded = await uploadToBlob(file, `${makeId()}-${file.name}`)
+      if (uploaded) {
+        setFileName(file.name)
+        onChange(uploaded)
+        return
+      }
+      if (file.size > MAX_EMBED_BYTES) {
+        setError(
+          `Online storage isn't reachable right now, and this file (${(file.size / 1024).toFixed(0)} KB) is too large to embed directly in the link. Try again in a moment, keep it under ${MAX_EMBED_BYTES / 1024} KB, or paste a hosted link instead.`,
+        )
+        return
+      }
       const dataUrl = await fileToDataUrl(file)
       setFileName(file.name)
       onChange(dataUrl)
@@ -54,7 +70,8 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
     }
   }
 
-  const uploadSizeKb = mode === 'upload' && value ? dataUrlSizeKb(value) : 0
+  const isEmbedded = mode === 'upload' && value.startsWith('data:')
+  const uploadSizeKb = isEmbedded ? dataUrlSizeKb(value) : 0
 
   return (
     <div>
@@ -114,7 +131,9 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
             <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
               <span className="truncate text-sm text-ink/90">🎵 {fileName || 'Uploaded track'}</span>
               <div className="flex shrink-0 items-center gap-3">
-                {uploadSizeKb > 0 && <span className="text-xs text-ink/40">{uploadSizeKb} KB</span>}
+                <span className="text-xs text-ink/40">
+                  {isEmbedded ? `${uploadSizeKb} KB embedded` : 'stored online ✓'}
+                </span>
                 <button
                   type="button"
                   onClick={() => {
@@ -134,7 +153,7 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
               disabled={busy}
               className="w-full rounded-xl border-2 border-dashed border-white/15 bg-white/[0.02] px-4 py-4 text-center text-sm text-ink/70 transition hover:border-[var(--color-gold-soft)]/50 hover:bg-white/[0.05] disabled:opacity-50"
             >
-              {busy ? 'Reading file...' : 'Click to choose an MP3 file'}
+              {busy ? 'Uploading...' : 'Click to choose an MP3 file'}
             </button>
           )}
         </div>
@@ -146,7 +165,7 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
 
       <p className="mt-1.5 text-xs text-ink/40">
         {mode === 'upload'
-          ? 'For a short sound bite only (a few seconds, under 600 KB) — uploaded audio is embedded directly in the share link, and a full song will make the link too long to open. For a full song, paste a hosted link instead.'
+          ? "Uploads go to secure online storage, so a full song is fine — it won't bloat your share link. If storage isn't reachable, it falls back to embedding directly in the link, which only works for a short clip under 600 KB."
           : 'Link to a royalty-free MP3 (or a Google Drive share link, shared as "Anyone with the link") — this is the right choice for a full song, since it keeps the share link short.'}{' '}
         Leave blank to skip music.
       </p>

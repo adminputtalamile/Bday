@@ -1,12 +1,16 @@
+interface CompressOptions {
+  maxDimension?: number
+  quality?: number
+}
+
 /**
- * Downscale + re-encode an uploaded image client-side so the resulting
- * data URL stays small enough to embed in a shareable link, while still
- * looking crisp on modern screens.
+ * Downscale + re-encode an uploaded image client-side so it stays reasonably
+ * sized, while still looking crisp on modern screens.
  */
-export async function compressImage(
+async function buildCompressedCanvas(
   file: File,
-  { maxDimension = 1280, quality = 0.78 }: { maxDimension?: number; quality?: number } = {},
-): Promise<string> {
+  { maxDimension = 1280 }: CompressOptions,
+): Promise<HTMLCanvasElement> {
   const bitmap = await loadBitmap(file)
 
   const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
@@ -23,7 +27,26 @@ export async function compressImage(
 
   if ('close' in bitmap) bitmap.close()
 
-  return canvas.toDataURL('image/jpeg', quality)
+  return canvas
+}
+
+/** Compresses to a data URL, for embedding directly in the share link. */
+export async function compressImage(
+  file: File,
+  options: CompressOptions = {},
+): Promise<string> {
+  const canvas = await buildCompressedCanvas(file, options)
+  return canvas.toDataURL('image/jpeg', options.quality ?? 0.78)
+}
+
+/** Compresses to a Blob, for uploading to storage without a base64 round-trip. */
+export async function compressImageToBlob(file: File, options: CompressOptions = {}): Promise<Blob> {
+  const canvas = await buildCompressedCanvas(file, options)
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', options.quality ?? 0.78),
+  )
+  if (!blob) throw new Error('Could not encode image')
+  return blob
 }
 
 async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {

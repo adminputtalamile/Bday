@@ -5,9 +5,12 @@ generate a private link that turns into an interactive birthday journey — open
 scene, animated greeting, memory timeline, photo slideshow, a tap-to-reveal secret
 message, a countdown surprise, and a grand confetti finale.
 
-Everything runs client-side: photos are compressed in the browser and the whole
-experience is packed into the share link itself, so there's no server or database
-involved.
+Photos and audio are compressed in the browser and, when deployed on Vercel with
+Blob storage enabled, uploaded there directly — keeping the share link itself tiny
+regardless of file size. Without Blob storage configured (e.g. running locally),
+uploads fall back to embedding directly in the share link instead, within a much
+smaller size limit. Either way there's no traditional database — recipient data
+(names, messages, the photo/audio URLs) all lives in the link itself.
 
 ## Getting started
 
@@ -23,26 +26,41 @@ experience directly — no account or backend required.
 
 ## How the share link works
 
-The recipient's name, message, photos, and settings are serialized to JSON,
-compressed, and placed in the URL's hash fragment (`#gift=...`). Hash fragments are
-never sent to a server, so nothing is uploaded — the link is the data. This keeps
-the whole project static and deployable anywhere (Netlify, Vercel, GitHub Pages,
-etc.), but it also means:
+The recipient's name, message, and settings (plus photo/audio URLs) are serialized
+to JSON, compressed, and placed in the URL's hash fragment (`#gift=...`). Hash
+fragments are never sent to a server, so this part stays static-hostable anywhere.
 
-- More or larger photos make the link longer. The Studio shows an estimated link
-  size and automatically compresses uploads to keep it reasonable.
+- With Blob storage configured, photos and audio are uploaded to it and only their
+  URLs go in the link — file size barely affects link length.
+- Without it, uploads embed directly in the link instead, so more or larger files
+  make the link longer. The Studio shows an estimated link size and blocks copying
+  a link that's grown too large to reliably open.
 - The link only works once the site is deployed somewhere reachable by the
   recipient — running it purely on `localhost` won't be openable by someone else.
+
+## Enabling Vercel Blob storage (optional but recommended)
+
+1. In the Vercel dashboard, add a Blob store to the project (Storage → Create →
+   Blob). Vercel injects the required `BLOB_READ_WRITE_TOKEN` env var automatically
+   for deployments.
+2. That's it for production — `api/upload.ts` (a Vercel Edge Function) picks it up
+   automatically.
+3. To test uploads locally, run `vercel link` then `vercel env pull` to get the
+   token into `.env.local`, and use `vercel dev` instead of `npm run dev` (plain
+   Vite dev/preview servers don't run `/api` functions at all — uploads will just
+   use the embedded-in-link fallback there, which is fine for everything else).
 
 ## Project structure
 
 ```
+api/
+  upload.ts       Vercel Edge Function — uploads a file to Blob storage
 src/
   components/
     studio/       the sender-facing creation UI (form, photo manager, share bar)
     experience/   the recipient-facing cinematic journey (scenes, music player, nav)
     effects/      shared visual effects (hearts, sparkles, ambient glow)
-  lib/            image compression, link encode/decode, local draft autosave
+  lib/            image compression, blob upload, link encode/decode, draft autosave
   hooks/          small shared hooks (prefers-reduced-motion)
   types.ts        the BirthdayData shape shared by both sides
 ```

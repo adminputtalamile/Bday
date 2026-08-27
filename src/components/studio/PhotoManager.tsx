@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import type { DragEvent } from 'react'
 import type { PhotoItem } from '../../types'
-import { compressImage, dataUrlSizeKb } from '../../lib/imageCompress'
+import { compressImageToBlob, dataUrlSizeKb } from '../../lib/imageCompress'
+import { fileToDataUrl } from '../../lib/file'
+import { uploadToBlob } from '../../lib/blobUpload'
 import { makeId } from '../../lib/id'
 
 interface PhotoManagerProps {
@@ -18,6 +20,13 @@ export default function PhotoManager({ photos, favoriteId, onChange, onSetFavori
   const inputRef = useRef<HTMLInputElement | null>(null)
   const replaceIndex = useRef<number | null>(null)
 
+  /** Compresses, then tries real storage first, falling back to embedding if that's unavailable. */
+  async function processPhoto(file: File): Promise<string> {
+    const blob = await compressImageToBlob(file)
+    const uploaded = await uploadToBlob(blob, `${makeId()}.jpg`)
+    return uploaded ?? (await fileToDataUrl(blob))
+  }
+
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return
     const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'))
@@ -28,12 +37,12 @@ export default function PhotoManager({ photos, favoriteId, onChange, onSetFavori
       if (replaceIndex.current !== null) {
         const i = replaceIndex.current
         replaceIndex.current = null
-        const src = await compressImage(files[0])
+        const src = await processPhoto(files[0])
         const next = [...photos]
         next[i] = { ...next[i], src }
         onChange(next)
       } else {
-        const results = await Promise.allSettled(files.map((f) => compressImage(f)))
+        const results = await Promise.allSettled(files.map(processPhoto))
         const added: PhotoItem[] = []
         for (const r of results) {
           if (r.status === 'fulfilled') added.push({ id: makeId(), src: r.value, caption: '' })
@@ -168,11 +177,20 @@ export default function PhotoManager({ photos, favoriteId, onChange, onSetFavori
       )}
       {photos.length > 0 && (
         <p className="text-xs text-ink/40">
-          Drag a photo to reorder · total size ~
-          {Math.round(photos.reduce((sum, p) => sum + dataUrlSizeKb(p.src), 0) / 1024)} MB · the ★ photo is saved
-          for the countdown surprise and finale — it won't appear in the photo album
+          Drag a photo to reorder · {photoSizeSummary(photos)} · the ★ photo is saved for the countdown surprise
+          and finale — it won't appear in the photo album
         </p>
       )}
     </div>
   )
+}
+
+function photoSizeSummary(photos: PhotoItem[]): string {
+  const embedded = photos.filter((p) => p.src.startsWith('data:'))
+  const hostedCount = photos.length - embedded.length
+  const embeddedMb = embedded.reduce((sum, p) => sum + dataUrlSizeKb(p.src), 0) / 1024
+
+  if (hostedCount === photos.length) return `all ${photos.length} stored online — none of it counts toward your link size`
+  if (hostedCount === 0) return `~${embeddedMb.toFixed(1)} MB embedded in your link`
+  return `${hostedCount} stored online, ~${embeddedMb.toFixed(1)} MB embedded in your link`
 }
