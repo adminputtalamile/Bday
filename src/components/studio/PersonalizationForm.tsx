@@ -1,5 +1,6 @@
 import type { BirthdayData } from '../../types'
 import FormField, { inputClass } from './FormField'
+import MusicPicker from './MusicPicker'
 
 interface PersonalizationFormProps {
   data: BirthdayData
@@ -60,17 +61,8 @@ export default function PersonalizationForm({ data, onChange }: PersonalizationF
         />
       </FormField>
 
-      <FormField
-        label="Background music URL"
-        hint="Optional — link to a royalty-free MP3 you have rights to use. Leave blank to skip music."
-      >
-        <input
-          className={inputClass}
-          value={data.musicUrl}
-          onChange={(e) => onChange({ musicUrl: e.target.value })}
-          placeholder="https://example.com/song.mp3"
-          type="url"
-        />
+      <FormField label="Background music">
+        <MusicPicker value={data.musicUrl} onChange={(musicUrl) => onChange({ musicUrl })} />
       </FormField>
     </div>
   )

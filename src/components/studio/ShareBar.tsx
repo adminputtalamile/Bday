@@ -63,9 +63,10 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
             onFocus={(e) => e.currentTarget.select()}
             className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink/80 outline-none"
           />
-          <p className="text-[11px] text-ink/40">
+          <p className={`text-[11px] ${sizeKb > 4000 ? 'text-rose-deep' : 'text-ink/40'}`}>
             ~{sizeKb.toLocaleString()} KB link · everything is embedded, nothing is uploaded to a server · fewer or
-            smaller photos keep the link snappier to open
+            smaller photos, and a hosted music link instead of an upload, keep it snappier to open
+            {sizeKb > 4000 && ' — this link is quite large and may fail to open in some browsers'}
           </p>
         </div>
       )}
