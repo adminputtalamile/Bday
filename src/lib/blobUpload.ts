@@ -43,7 +43,7 @@ async function logServerReason(filename: string): Promise<void> {
       }),
     })
     const detail = await res.json().catch(() => null)
-    console.error(`/api/upload responded ${res.status}:`, detail)
+    console.error(`/api/upload responded ${res.status}: ${JSON.stringify(detail)}`)
   } catch (err) {
     console.error('Could not even reach /api/upload:', err)
   }
