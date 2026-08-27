@@ -61,8 +61,12 @@ export default function Countdown({ photo, onReveal }: CountdownProps) {
           className="relative"
         >
           <Sparkles count={40} />
-          <div className="glow-gold h-72 w-56 overflow-hidden rounded-[2rem] border border-white/20 shadow-2xl sm:h-96 sm:w-72">
-            <img src={photo.src} alt={photo.caption || 'A special surprise'} className="h-full w-full object-cover" />
+          <div className="glow-gold flex h-72 w-56 items-center justify-center overflow-hidden rounded-[2rem] border border-white/20 bg-black/20 shadow-2xl sm:h-96 sm:w-72">
+            <img
+              src={photo.src}
+              alt={photo.caption || 'A special surprise'}
+              className="max-h-full max-w-full object-contain"
+            />
           </div>
           {photo.caption && (
             <p className="mt-6 font-script text-xl italic text-ink/90">“{photo.caption}”</p>

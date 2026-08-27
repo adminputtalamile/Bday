@@ -4,14 +4,14 @@ import type { BirthdayData } from '../../types'
 import Opening from './scenes/Opening'
 import Greeting from './scenes/Greeting'
 import MemoryTimeline from './scenes/MemoryTimeline'
-import Slideshow from './scenes/Slideshow'
+import PhotoAlbum from './scenes/PhotoAlbum'
 import HiddenMessage from './scenes/HiddenMessage'
 import Countdown from './scenes/Countdown'
 import Finale from './scenes/Finale'
 import SceneNav from './SceneNav'
 import { useBackgroundMusic } from '../../hooks/useBackgroundMusic'
 
-type SceneKey = 'opening' | 'greeting' | 'timeline' | 'slideshow' | 'hidden' | 'countdown' | 'finale'
+type SceneKey = 'opening' | 'greeting' | 'timeline' | 'album' | 'hidden' | 'countdown' | 'finale'
 
 interface ExperienceProps {
   data: BirthdayData
@@ -34,7 +34,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   const scenes = useMemo(() => {
     const list: SceneKey[] = ['greeting']
     if (captionedPhotos.length > 0) list.push('timeline')
-    if (data.photos.length > 0) list.push('slideshow')
+    if (data.photos.length > 0) list.push('album')
     if (data.specialMessage.trim()) list.push('hidden')
     if (data.photos.length > 0) list.push('countdown')
     list.push('finale')
@@ -107,7 +107,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
         >
           {current === 'greeting' && <Greeting recipientName={data.recipientName} message={data.message} />}
           {current === 'timeline' && <MemoryTimeline photos={captionedPhotos} />}
-          {current === 'slideshow' && <Slideshow photos={data.photos} />}
+          {current === 'album' && <PhotoAlbum photos={data.photos} onContinue={next} />}
           {current === 'hidden' && (
             <HiddenMessage message={data.specialMessage} onReveal={() => setHiddenRevealed(true)} />
           )}

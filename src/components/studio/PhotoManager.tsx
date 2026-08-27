@@ -121,8 +121,8 @@ export default function PhotoManager({ photos, favoriteId, onChange, onSetFavori
               }}
               className="group relative flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2"
             >
-              <div className="relative aspect-square overflow-hidden rounded-lg">
-                <img src={photo.src} alt="" className="h-full w-full object-cover" />
+              <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-black/20">
+                <img src={photo.src} alt="" className="max-h-full max-w-full object-contain" />
                 <div className="absolute inset-x-0 top-0 flex items-center justify-between p-1.5">
                   <button
                     title="Set as finale photo"

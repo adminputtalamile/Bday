@@ -35,9 +35,9 @@ export default function Finale({ recipientName, senderName, finalMessage, photo,
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 1, ease: 'easeOut' }}
-          className="glow-rose mb-8 h-40 w-40 overflow-hidden rounded-full border-4 border-white/20 shadow-2xl sm:h-52 sm:w-52"
+          className="glow-rose mb-8 flex h-40 w-40 items-center justify-center overflow-hidden rounded-3xl border-4 border-white/20 bg-black/20 shadow-2xl sm:h-52 sm:w-52"
         >
-          <img src={photo.src} alt="" className="h-full w-full object-cover" />
+          <img src={photo.src} alt="" className="max-h-full max-w-full object-contain" />
         </motion.div>
       )}
 

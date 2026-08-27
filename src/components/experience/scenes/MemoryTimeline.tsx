@@ -33,11 +33,11 @@ export default function MemoryTimeline({ photos }: MemoryTimelineProps) {
                 i % 2 === 1 ? 'sm:flex-row-reverse' : ''
               }`}
             >
-              <div className="h-56 w-56 shrink-0 overflow-hidden rounded-3xl glass-card p-1.5 shadow-2xl sm:h-64 sm:w-64">
+              <div className="flex h-56 w-56 shrink-0 items-center justify-center overflow-hidden rounded-3xl glass-card bg-black/20 p-1.5 shadow-2xl sm:h-64 sm:w-64">
                 <img
                   src={photo.src}
                   alt={photo.caption || 'A cherished memory'}
-                  className="h-full w-full rounded-2xl object-cover"
+                  className="h-full w-full rounded-2xl object-contain"
                   loading="lazy"
                 />
               </div>
