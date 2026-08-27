@@ -21,6 +21,30 @@ export async function uploadToBlob(file: Blob, filename: string): Promise<string
     return result.url
   } catch (err) {
     console.error('Blob upload failed:', err)
+    await logServerReason(filename)
     return null
+  }
+}
+
+/**
+ * The SDK's own error on failure is a generic wrapper ("Failed to retrieve
+ * the client token") that discards whatever our /api/upload function
+ * actually said. Re-issue the same token request by hand purely to log the
+ * real reason — the one place worth looking for what's actually wrong.
+ */
+async function logServerReason(filename: string): Promise<void> {
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        type: 'blob.generate-client-token',
+        payload: { pathname: filename, callbackUrl: '', clientPayload: null, multipart: false },
+      }),
+    })
+    const detail = await res.json().catch(() => null)
+    console.error(`/api/upload responded ${res.status}:`, detail)
+  } catch (err) {
+    console.error('Could not even reach /api/upload:', err)
   }
 }
