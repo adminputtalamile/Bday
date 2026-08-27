@@ -48,7 +48,6 @@ export default function PersonalizationForm({ data, onChange }: PersonalizationF
           value={data.message}
           onChange={(e) => onChange({ message: e.target.value })}
           placeholder="Wishing you a day filled with everything that makes you smile..."
-          maxLength={600}
         />
       </FormField>
 
@@ -58,7 +57,6 @@ export default function PersonalizationForm({ data, onChange }: PersonalizationF
           value={data.specialMessage}
           onChange={(e) => onChange({ specialMessage: e.target.value })}
           placeholder="A little something just for their eyes..."
-          maxLength={400}
         />
       </FormField>
 
