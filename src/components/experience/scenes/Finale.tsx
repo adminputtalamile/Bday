@@ -16,8 +16,13 @@ interface FinaleProps {
   onRestart: () => void
 }
 
+const DEFAULT_FINAL_MESSAGE = 'Wishing you endless love, joy, and unforgettable moments — today and always.'
+
 export default function Finale({ recipientName, senderName, finalMessage, photo, onRestart }: FinaleProps) {
-  const pages = useMemo(() => paginateMessage(finalMessage), [finalMessage])
+  const pages = useMemo(
+    () => paginateMessage(finalMessage.trim() || DEFAULT_FINAL_MESSAGE),
+    [finalMessage],
+  )
 
   useEffect(() => {
     const t = setTimeout(() => grandFinaleConfetti(), 900)

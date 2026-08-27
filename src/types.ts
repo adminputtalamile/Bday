@@ -9,6 +9,7 @@ export interface BirthdayData {
   senderName: string
   message: string
   specialMessage: string
+  finalMessage: string
   birthdayDate: string
   photos: PhotoItem[]
   favoritePhotoId: string
@@ -20,6 +21,7 @@ export const emptyBirthdayData: BirthdayData = {
   senderName: '',
   message: '',
   specialMessage: '',
+  finalMessage: '',
   birthdayDate: '',
   photos: [],
   favoritePhotoId: '',

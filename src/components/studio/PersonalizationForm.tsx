@@ -40,10 +40,7 @@ export default function PersonalizationForm({ data, onChange }: PersonalizationF
         />
       </FormField>
 
-      <FormField
-        label="Main birthday message"
-        hint="Appears early on, revealed word by word, and again in the finale."
-      >
+      <FormField label="Main birthday message" hint="Appears early on, revealed page by page like a book.">
         <textarea
           className={`${inputClass} min-h-24 resize-y`}
           value={data.message}
@@ -58,6 +55,18 @@ export default function PersonalizationForm({ data, onChange }: PersonalizationF
           value={data.specialMessage}
           onChange={(e) => onChange({ specialMessage: e.target.value })}
           placeholder="A little something just for their eyes..."
+        />
+      </FormField>
+
+      <FormField
+        label="Final message"
+        hint="Shown beneath 'Happy Birthday' in the grand finale, in place of the main message."
+      >
+        <textarea
+          className={`${inputClass} min-h-20 resize-y`}
+          value={data.finalMessage}
+          onChange={(e) => onChange({ finalMessage: e.target.value })}
+          placeholder="One last thing before you go..."
         />
       </FormField>
 

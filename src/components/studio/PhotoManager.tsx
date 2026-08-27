@@ -169,8 +169,8 @@ export default function PhotoManager({ photos, favoriteId, onChange, onSetFavori
       {photos.length > 0 && (
         <p className="text-xs text-ink/40">
           Drag a photo to reorder · total size ~
-          {Math.round(photos.reduce((sum, p) => sum + dataUrlSizeKb(p.src), 0) / 1024)} MB · the ★ photo stars in the
-          finale and countdown reveal
+          {Math.round(photos.reduce((sum, p) => sum + dataUrlSizeKb(p.src), 0) / 1024)} MB · the ★ photo is saved
+          for the countdown surprise and finale — it won't appear in the photo album
         </p>
       )}
     </div>

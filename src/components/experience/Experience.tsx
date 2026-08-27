@@ -28,18 +28,21 @@ export default function Experience({ data, topAction }: ExperienceProps) {
   const music = useBackgroundMusic(data.musicUrl)
 
   const captionedPhotos = useMemo(() => data.photos.filter((p) => p.caption?.trim()), [data.photos])
-  const favoritePhoto =
-    data.photos.find((p) => p.id === data.favoritePhotoId) || data.photos[data.photos.length - 1]
+  const favoritePhoto = data.photos.find((p) => p.id === data.favoritePhotoId)
+  const albumPhotos = useMemo(
+    () => data.photos.filter((p) => p.id !== data.favoritePhotoId),
+    [data.photos, data.favoritePhotoId],
+  )
 
   const scenes = useMemo(() => {
     const list: SceneKey[] = ['greeting']
     if (captionedPhotos.length > 0) list.push('timeline')
-    if (data.photos.length > 0) list.push('album')
+    if (albumPhotos.length > 0) list.push('album')
     if (data.specialMessage.trim()) list.push('hidden')
-    if (data.photos.length > 0) list.push('countdown')
+    if (favoritePhoto) list.push('countdown')
     list.push('finale')
     return list
-  }, [captionedPhotos.length, data.photos.length, data.specialMessage])
+  }, [captionedPhotos.length, albumPhotos.length, data.specialMessage, favoritePhoto])
 
   const goTo = useCallback(
     (i: number) => {
@@ -107,7 +110,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
         >
           {current === 'greeting' && <Greeting recipientName={data.recipientName} message={data.message} />}
           {current === 'timeline' && <MemoryTimeline photos={captionedPhotos} />}
-          {current === 'album' && <PhotoAlbum photos={data.photos} onContinue={next} />}
+          {current === 'album' && <PhotoAlbum photos={albumPhotos} onContinue={next} />}
           {current === 'hidden' && (
             <HiddenMessage message={data.specialMessage} onReveal={() => setHiddenRevealed(true)} />
           )}
@@ -118,7 +121,7 @@ export default function Experience({ data, topAction }: ExperienceProps) {
             <Finale
               recipientName={data.recipientName}
               senderName={data.senderName}
-              finalMessage={data.message}
+              finalMessage={data.finalMessage}
               photo={favoritePhoto}
               onRestart={handleRestart}
             />
