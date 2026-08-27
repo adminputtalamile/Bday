@@ -1,45 +1,46 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
+import { put } from '@vercel/blob'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-// This route only ever exchanges a small JSON token — the actual file bytes
-// go straight from the browser to Blob storage, never through this function.
-// It must run on the Node.js runtime (the default — no `edge` config here):
-// handleUpload() talks to Vercel's Blob API via undici, which pulls in Node
-// built-ins (stream, crypto, net, tls, ...) that Edge Runtime doesn't support.
+// Runs on Vercel's default Node.js runtime. The browser POSTs the raw file
+// body directly here (no separate client-token exchange), and this streams
+// it straight into Blob storage via put() — the same pattern as Vercel's own
+// documented quickstart. put() also works with either a static
+// BLOB_READ_WRITE_TOKEN or Vercel's newer OIDC-based store connection
+// automatically, unlike the client-upload token flow this replaces.
+export const config = {
+  api: { bodyParser: false },
+}
 
-const ALLOWED_CONTENT_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'audio/mpeg',
-  'audio/mp3',
-  'audio/mp4',
-  'audio/wav',
-  'audio/x-wav',
-  'audio/ogg',
-  'audio/aac',
-]
-
-const MAX_BYTES = 25 * 1024 * 1024 // 25 MB
+// Comfortably under Vercel's ~4.5 MB request body limit for Node functions.
+const MAX_BYTES = 4 * 1024 * 1024
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  const body = request.body as HandleUploadBody
+  if (request.method !== 'POST') {
+    response.status(405).json({ error: 'Method not allowed' })
+    return
+  }
+
+  const filename = request.query.filename
+  if (typeof filename !== 'string' || !filename) {
+    response.status(400).json({ error: 'Missing filename' })
+    return
+  }
+
+  const contentLength = Number(request.headers['content-length'] ?? '0')
+  if (contentLength > MAX_BYTES) {
+    response.status(413).json({ error: `File too large — the limit is ${MAX_BYTES / 1024 / 1024} MB.` })
+    return
+  }
 
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ALLOWED_CONTENT_TYPES,
-        addRandomSuffix: true,
-        maximumSizeInBytes: MAX_BYTES,
-      }),
+    const blob = await put(`gifts/${filename}`, request, {
+      access: 'public',
+      addRandomSuffix: true,
+      contentType: request.headers['content-type'] || undefined,
     })
-
-    response.status(200).json(jsonResponse)
+    response.status(200).json(blob)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed'
-    response.status(400).json({ error: message })
+    response.status(500).json({ error: message })
   }
 }

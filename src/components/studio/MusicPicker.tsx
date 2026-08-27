@@ -18,7 +18,7 @@ type Mode = 'link' | 'upload'
 // straight into the share link's URL — and that fallback has to stay tiny,
 // since there's no compression for audio the way there is for photos, and a
 // large embedded file produces a URL too long to open in practice.
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024 // 25 MB — ceiling when storage is available (matches the server)
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024 // 4 MB — ceiling when storage is available (matches the server's request body limit)
 const MAX_EMBED_BYTES = 600 * 1024 // 600 KB — ceiling for the fallback, embedded path
 
 export default function MusicPicker({ value, onChange }: MusicPickerProps) {
@@ -165,7 +165,7 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
 
       <p className="mt-1.5 text-xs text-ink/40">
         {mode === 'upload'
-          ? "Uploads go to secure online storage, so a full song is fine — it won't bloat your share link. If storage isn't reachable, it falls back to embedding directly in the link, which only works for a short clip under 600 KB."
+          ? "Uploads go to online storage (up to 4 MB — most songs at normal quality fit) and won't bloat your share link. For anything larger, paste a hosted link instead. If storage isn't reachable, it falls back to embedding directly in the link, which only works for a short clip under 600 KB."
           : 'Link to a royalty-free MP3 (or a Google Drive share link, shared as "Anyone with the link") — this is the right choice for a full song, since it keeps the share link short.'}{' '}
         Leave blank to skip music.
       </p>

@@ -1,50 +1,27 @@
-import { upload } from '@vercel/blob/client'
-
 /**
- * Uploads a file directly from the browser to Vercel Blob storage, using a
- * short-lived client token issued by /api/upload. The file bytes never pass
- * through our own serverless/edge function, so there's no server body-size
- * limit to hit — this works the same for a 200 KB photo or a 15 MB song.
- *
- * Returns null on any failure (no /api route available, as with plain
- * `vite dev`/`preview` locally; no Blob store connected; file rejected by
- * size or type; network error) so callers can fall back to embedding the
- * file directly in the share link instead.
+ * Uploads a file to the site's /api/upload serverless function, which
+ * streams it into Vercel Blob storage and returns a public URL. Returns
+ * null on any failure — including running in plain `vite dev`/`preview`
+ * (no /api routes locally), no Blob store connected, or the file exceeding
+ * the function's body-size limit — so callers can fall back to embedding
+ * the file directly in the share link instead.
  */
 export async function uploadToBlob(file: Blob, filename: string): Promise<string | null> {
   try {
-    const result = await upload(filename, file, {
-      access: 'public',
-      handleUploadUrl: '/api/upload',
-      contentType: file.type || undefined,
+    const res = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+      method: 'POST',
+      body: file,
+      headers: { 'content-type': file.type || 'application/octet-stream' },
     })
-    return result.url
+    if (!res.ok) {
+      const detail = await res.json().catch(() => null)
+      console.error(`/api/upload responded ${res.status}: ${JSON.stringify(detail)}`)
+      return null
+    }
+    const data = (await res.json()) as { url?: string }
+    return data.url ?? null
   } catch (err) {
     console.error('Blob upload failed:', err)
-    await logServerReason(filename)
     return null
-  }
-}
-
-/**
- * The SDK's own error on failure is a generic wrapper ("Failed to retrieve
- * the client token") that discards whatever our /api/upload function
- * actually said. Re-issue the same token request by hand purely to log the
- * real reason — the one place worth looking for what's actually wrong.
- */
-async function logServerReason(filename: string): Promise<void> {
-  try {
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        type: 'blob.generate-client-token',
-        payload: { pathname: filename, callbackUrl: '', clientPayload: null, multipart: false },
-      }),
-    })
-    const detail = await res.json().catch(() => null)
-    console.error(`/api/upload responded ${res.status}: ${JSON.stringify(detail)}`)
-  } catch (err) {
-    console.error('Could not even reach /api/upload:', err)
   }
 }
