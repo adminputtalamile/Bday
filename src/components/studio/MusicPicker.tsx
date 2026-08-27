@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { inputClass } from './FormField'
 import { fileToDataUrl } from '../../lib/file'
 import { dataUrlSizeKb } from '../../lib/imageCompress'
+import { isDriveDirectUrl, toDriveDirectUrl } from '../../lib/driveLink'
 
 interface MusicPickerProps {
   value: string
@@ -79,13 +80,24 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
       </div>
 
       {mode === 'link' ? (
-        <input
-          className={inputClass}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://example.com/song.mp3"
-          type="url"
-        />
+        <>
+          <input
+            className={inputClass}
+            value={value}
+            onChange={(e) => {
+              const pasted = e.target.value
+              onChange(toDriveDirectUrl(pasted) ?? pasted)
+            }}
+            placeholder="https://example.com/song.mp3 or a Google Drive share link"
+            type="url"
+          />
+          {isDriveDirectUrl(value) && (
+            <p className="mt-1.5 text-xs text-gold-soft/80">
+              ✓ Converted your Google Drive link to a direct-playback URL. Make sure that file is shared as
+              "Anyone with the link" in Drive, or it won't play for the recipient.
+            </p>
+          )}
+        </>
       ) : (
         <div>
           <input
@@ -133,7 +145,7 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
       <p className="mt-1.5 text-xs text-ink/40">
         {mode === 'upload'
           ? 'For a short sound bite only (a few seconds, under 600 KB) — uploaded audio is embedded directly in the share link, and a full song will make the link too long to open. For a full song, paste a hosted link instead.'
-          : 'Link to a royalty-free MP3 you have rights to use — this is the right choice for a full song, since it keeps the share link short.'}{' '}
+          : 'Link to a royalty-free MP3 (or a Google Drive share link, shared as "Anyone with the link") — this is the right choice for a full song, since it keeps the share link short.'}{' '}
         Leave blank to skip music.
       </p>
     </div>
