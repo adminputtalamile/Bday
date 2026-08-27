@@ -1,11 +1,11 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 // This route only ever exchanges a small JSON token — the actual file bytes
 // go straight from the browser to Blob storage, never through this function.
-// That sidesteps serverless/edge request body-size limits entirely, which is
-// what made large audio uploads unreliable with the previous direct-upload
-// approach.
-export const config = { runtime: 'edge' }
+// It must run on the Node.js runtime (the default — no `edge` config here):
+// handleUpload() talks to Vercel's Blob API via undici, which pulls in Node
+// built-ins (stream, crypto, net, tls, ...) that Edge Runtime doesn't support.
 
 const ALLOWED_CONTENT_TYPES = [
   'image/jpeg',
@@ -23,8 +23,8 @@ const ALLOWED_CONTENT_TYPES = [
 
 const MAX_BYTES = 25 * 1024 * 1024 // 25 MB
 
-export default async function handler(request: Request): Promise<Response> {
-  const body = (await request.json()) as HandleUploadBody
+export default async function handler(request: VercelRequest, response: VercelResponse) {
+  const body = request.body as HandleUploadBody
 
   try {
     const jsonResponse = await handleUpload({
@@ -37,15 +37,9 @@ export default async function handler(request: Request): Promise<Response> {
       }),
     })
 
-    return new Response(JSON.stringify(jsonResponse), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    })
+    response.status(200).json(jsonResponse)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed'
-    return new Response(JSON.stringify({ error: message }), {
-      status: 400,
-      headers: { 'content-type': 'application/json' },
-    })
+    response.status(400).json({ error: message })
   }
 }
