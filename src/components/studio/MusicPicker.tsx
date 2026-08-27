@@ -18,7 +18,7 @@ type Mode = 'link' | 'upload'
 // straight into the share link's URL — and that fallback has to stay tiny,
 // since there's no compression for audio the way there is for photos, and a
 // large embedded file produces a URL too long to open in practice.
-const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 // 20 MB — ceiling when storage is available
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024 // 25 MB — ceiling when storage is available (matches the server)
 const MAX_EMBED_BYTES = 600 * 1024 // 600 KB — ceiling for the fallback, embedded path
 
 export default function MusicPicker({ value, onChange }: MusicPickerProps) {

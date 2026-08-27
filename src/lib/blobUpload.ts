@@ -1,21 +1,26 @@
+import { upload } from '@vercel/blob/client'
+
 /**
- * Uploads a file to the site's /api/upload serverless function, which stores
- * it in Vercel Blob storage and returns a public URL. Returns null on any
- * failure — including running in plain `vite dev` (no /api routes locally)
- * or a deployment without Blob storage configured — so callers can fall back
- * to embedding the file directly in the share link instead.
+ * Uploads a file directly from the browser to Vercel Blob storage, using a
+ * short-lived client token issued by /api/upload. The file bytes never pass
+ * through our own serverless/edge function, so there's no server body-size
+ * limit to hit — this works the same for a 200 KB photo or a 15 MB song.
+ *
+ * Returns null on any failure (no /api route available, as with plain
+ * `vite dev`/`preview` locally; no Blob store connected; file rejected by
+ * size or type; network error) so callers can fall back to embedding the
+ * file directly in the share link instead.
  */
 export async function uploadToBlob(file: Blob, filename: string): Promise<string | null> {
   try {
-    const res = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-      method: 'POST',
-      body: file,
-      headers: { 'content-type': file.type || 'application/octet-stream' },
+    const result = await upload(filename, file, {
+      access: 'public',
+      handleUploadUrl: '/api/upload',
+      contentType: file.type || undefined,
     })
-    if (!res.ok) return null
-    const data = (await res.json()) as { url?: string }
-    return data.url ?? null
-  } catch {
+    return result.url
+  } catch (err) {
+    console.error('Blob upload failed:', err)
     return null
   }
 }

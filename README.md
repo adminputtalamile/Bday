@@ -40,21 +40,32 @@ fragments are never sent to a server, so this part stays static-hostable anywher
 
 ## Enabling Vercel Blob storage (optional but recommended)
 
-1. In the Vercel dashboard, add a Blob store to the project (Storage → Create →
-   Blob). Vercel injects the required `BLOB_READ_WRITE_TOKEN` env var automatically
-   for deployments.
-2. That's it for production — `api/upload.ts` (a Vercel Edge Function) picks it up
-   automatically.
+Uploads use Vercel Blob's **client upload** pattern: the browser uploads the file
+bytes directly to Blob storage, and `api/upload.ts` only ever issues a short-lived
+token for that upload — the file itself never passes through our own function. This
+avoids any server/edge request-size ceiling, so a full song works the same as a
+small photo.
+
+1. In the Vercel dashboard, add a Blob store to the project **and connect it to
+   this project** (Storage → your store → Connect Project — creating a store does
+   not automatically wire it to a project). Vercel then injects the required
+   `BLOB_READ_WRITE_TOKEN` env var into new deployments.
+2. Redeploy after connecting it — env vars only apply to deployments made after
+   they're set, not retroactively to an already-running one.
 3. To test uploads locally, run `vercel link` then `vercel env pull` to get the
    token into `.env.local`, and use `vercel dev` instead of `npm run dev` (plain
    Vite dev/preview servers don't run `/api` functions at all — uploads will just
    use the embedded-in-link fallback there, which is fine for everything else).
 
+If an upload fails, the browser console logs the real reason (open DevTools →
+Console) — the UI itself falls back silently to embedding rather than surfacing an
+error, since that fallback keeps things working even without storage configured.
+
 ## Project structure
 
 ```
 api/
-  upload.ts       Vercel Edge Function — uploads a file to Blob storage
+  upload.ts       Vercel Edge Function — issues client upload tokens for Blob storage
 src/
   components/
     studio/       the sender-facing creation UI (form, photo manager, share bar)
