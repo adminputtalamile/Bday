@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { BirthdayData } from '../../types'
 import { buildShareUrl } from '../../lib/share'
+import { hasEmbeddedMedia, migrateEmbeddedMedia } from '../../lib/migrateToBlob'
 
 interface ShareBarProps {
   data: BirthdayData
+  onChange: (patch: Partial<BirthdayData>) => void
   onPreview: () => void
 }
 
@@ -14,9 +16,11 @@ interface ShareBarProps {
 const WARN_LIMIT_CHARS = 300_000
 const HARD_LIMIT_CHARS = 700_000
 
-export default function ShareBar({ data, onPreview }: ShareBarProps) {
+export default function ShareBar({ data, onChange, onPreview }: ShareBarProps) {
   const [copied, setCopied] = useState(false)
   const [showLink, setShowLink] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrationNote, setMigrationNote] = useState('')
 
   const canGenerate = data.recipientName.trim() && data.photos.length > 0 && data.message.trim()
   const shareUrl = useMemo(() => (canGenerate ? buildShareUrl(data) : ''), [canGenerate, data])
@@ -25,6 +29,7 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
   const tooLarge = linkChars > HARD_LIMIT_CHARS
   const large = linkChars > WARN_LIMIT_CHARS
   const canCopy = canGenerate && !tooLarge
+  const embedded = hasEmbeddedMedia(data)
 
   async function copyLink() {
     setShowLink(true)
@@ -35,6 +40,26 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
       setTimeout(() => setCopied(false), 2000)
     } catch {
       // clipboard API unavailable — the visible input still lets them copy manually
+    }
+  }
+
+  async function runMigration() {
+    setMigrating(true)
+    setMigrationNote('')
+    try {
+      const result = await migrateEmbeddedMedia(data)
+      onChange(result.data)
+      if (result.migrated === 0 && result.failed > 0) {
+        setMigrationNote(
+          "Couldn't reach online storage — nothing was moved. Open the browser console for the real error, or check that Blob storage is connected to this deployment.",
+        )
+      } else if (result.failed > 0) {
+        setMigrationNote(`Moved ${result.migrated} file${result.migrated === 1 ? '' : 's'} online, ${result.failed} still failed — try again in a moment.`)
+      } else {
+        setMigrationNote(`Moved ${result.migrated} file${result.migrated === 1 ? '' : 's'} to online storage ✓`)
+      }
+    } finally {
+      setMigrating(false)
     }
   }
 
@@ -67,6 +92,24 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
         </div>
       </div>
 
+      {canGenerate && embedded && (
+        <div className="mx-auto mt-4 max-w-3xl rounded-xl border border-gold-soft/30 bg-white/[0.03] px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink/60">
+              Some photos or music are still embedded directly in the link instead of stored online.
+            </p>
+            <button
+              onClick={runMigration}
+              disabled={migrating}
+              className="shrink-0 rounded-full border border-gold-soft/40 bg-gold-soft/10 px-4 py-1.5 text-xs font-medium text-gold-soft transition hover:bg-gold-soft/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {migrating ? 'Moving files…' : 'Move to online storage'}
+            </button>
+          </div>
+          {migrationNote && <p className="mt-2 text-[11px] text-ink/50">{migrationNote}</p>}
+        </div>
+      )}
+
       {showLink && canGenerate && (
         <div className="mx-auto mt-4 max-w-3xl space-y-1.5">
           {tooLarge ? (
@@ -83,9 +126,9 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
             />
           )}
           <p className={`text-[11px] ${large ? 'text-rose-deep' : 'text-ink/40'}`}>
-            ~{approxMb < 0.1 ? `${Math.round(linkChars / 1000)} KB` : `${approxMb.toFixed(2)} MB`} link · everything
-            is embedded, nothing is uploaded to a server · fewer or smaller photos, and a hosted music link instead
-            of an upload, keep it well within a shareable size
+            ~{approxMb < 0.1 ? `${Math.round(linkChars / 1000)} KB` : `${approxMb.toFixed(2)} MB`} link · names,
+            messages, and any media stored online stay tiny — size here comes only from photos or music still
+            embedded directly (see above if any are)
             {large && !tooLarge && ' — getting large, consider trimming a little'}
           </p>
         </div>

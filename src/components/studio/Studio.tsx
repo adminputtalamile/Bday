@@ -42,7 +42,7 @@ export default function Studio({ data, onChange, onPreview }: StudioProps) {
           />
         </section>
 
-        <ShareBar data={data} onPreview={onPreview} />
+        <ShareBar data={data} onChange={onChange} onPreview={onPreview} />
 
         <footer className="mt-10 text-center text-xs text-ink/30">
           Your draft is saved privately in this browser only — nothing leaves your device until you share the link.
