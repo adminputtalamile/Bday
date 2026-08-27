@@ -142,12 +142,51 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
 
       {error && <p className="mt-1.5 text-xs text-rose-deep">{error}</p>}
 
+      {value && <AudioProbe key={value} src={value} />}
+
       <p className="mt-1.5 text-xs text-ink/40">
         {mode === 'upload'
           ? 'For a short sound bite only (a few seconds, under 600 KB) — uploaded audio is embedded directly in the share link, and a full song will make the link too long to open. For a full song, paste a hosted link instead.'
           : 'Link to a royalty-free MP3 (or a Google Drive share link, shared as "Anyone with the link") — this is the right choice for a full song, since it keeps the share link short.'}{' '}
         Leave blank to skip music.
       </p>
+    </div>
+  )
+}
+
+/** Lets the sender confirm right here whether a music source actually plays, instead of finding out later. */
+function AudioProbe({ src }: { src: string }) {
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
+
+  return (
+    <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        key={src}
+        controls
+        preload="metadata"
+        src={src}
+        className="h-9 w-full"
+        onCanPlay={() => setStatus('ok')}
+        onError={() => setStatus('error')}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className={status === 'error' ? 'text-rose-deep' : status === 'ok' ? 'text-gold-soft/80' : 'text-ink/40'}>
+          {status === 'loading' && 'Checking whether this plays…'}
+          {status === 'ok' && '✓ This plays correctly'}
+          {status === 'error' && "✗ Couldn't load this track"}
+        </span>
+        <a href={src} target="_blank" rel="noreferrer" className="text-ink/50 underline hover:text-ink">
+          Open link directly ↗
+        </a>
+      </div>
+      {status === 'error' && (
+        <p className="text-xs text-rose-deep">
+          For a Drive link, this almost always means the file isn't shared as "Anyone with the link" — open it in
+          Drive, click Share, and set it to "Anyone with the link · Viewer". Then paste the link again. "Open link
+          directly" above shows you exactly what Google is returning.
+        </p>
+      )}
     </div>
   )
 }
