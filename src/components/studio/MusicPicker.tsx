@@ -22,7 +22,7 @@ const MAX_UPLOAD_BYTES = 4 * 1024 * 1024 // 4 MB — ceiling when storage is ava
 const MAX_EMBED_BYTES = 600 * 1024 // 600 KB — ceiling for the fallback, embedded path
 
 export default function MusicPicker({ value, onChange }: MusicPickerProps) {
-  const isUpload = value.startsWith('data:') || value.includes('.blob.vercel-storage.com')
+  const isUpload = value.startsWith('data:') || value.startsWith('/api/view?')
   const [mode, setMode] = useState<Mode>(isUpload ? 'upload' : 'link')
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')

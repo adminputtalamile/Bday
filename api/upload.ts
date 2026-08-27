@@ -7,6 +7,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // documented quickstart. put() also works with either a static
 // BLOB_READ_WRITE_TOKEN or Vercel's newer OIDC-based store connection
 // automatically, unlike the client-upload token flow this replaces.
+//
+// access is 'private' because this store is configured for private-only
+// blobs (it rejects `access: 'public'` outright) — see api/view.ts, which
+// serves these back out through our own server so recipients don't need any
+// credentials themselves.
 export const config = {
   api: { bodyParser: false },
 }
@@ -34,7 +39,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   try {
     const blob = await put(`gifts/${filename}`, request, {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: true,
       contentType: request.headers['content-type'] || undefined,
     })
