@@ -7,16 +7,28 @@ interface ShareBarProps {
   onPreview: () => void
 }
 
+// Everything (photos, an uploaded audio clip) lives inside the share link's
+// URL, so an oversized link is a hard failure, not just a slow load — most
+// browsers and messaging apps won't reliably open a URL past a few hundred
+// thousand characters. These thresholds keep links well inside that margin.
+const WARN_LIMIT_CHARS = 300_000
+const HARD_LIMIT_CHARS = 700_000
+
 export default function ShareBar({ data, onPreview }: ShareBarProps) {
   const [copied, setCopied] = useState(false)
   const [showLink, setShowLink] = useState(false)
 
   const canGenerate = data.recipientName.trim() && data.photos.length > 0 && data.message.trim()
   const shareUrl = useMemo(() => (canGenerate ? buildShareUrl(data) : ''), [canGenerate, data])
-  const sizeKb = useMemo(() => Math.round((shareUrl.length * 2) / 1024), [shareUrl])
+  const linkChars = shareUrl.length
+  const approxMb = linkChars / 1_000_000
+  const tooLarge = linkChars > HARD_LIMIT_CHARS
+  const large = linkChars > WARN_LIMIT_CHARS
+  const canCopy = canGenerate && !tooLarge
 
   async function copyLink() {
     setShowLink(true)
+    if (!canCopy) return
     try {
       await navigator.clipboard.writeText(shareUrl)
       setCopied(true)
@@ -55,18 +67,26 @@ export default function ShareBar({ data, onPreview }: ShareBarProps) {
         </div>
       </div>
 
-      {showLink && shareUrl && (
+      {showLink && canGenerate && (
         <div className="mx-auto mt-4 max-w-3xl space-y-1.5">
-          <input
-            readOnly
-            value={shareUrl}
-            onFocus={(e) => e.currentTarget.select()}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink/80 outline-none"
-          />
-          <p className={`text-[11px] ${sizeKb > 4000 ? 'text-rose-deep' : 'text-ink/40'}`}>
-            ~{sizeKb.toLocaleString()} KB link · everything is embedded, nothing is uploaded to a server · fewer or
-            smaller photos, and a hosted music link instead of an upload, keep it snappier to open
-            {sizeKb > 4000 && ' — this link is quite large and may fail to open in some browsers'}
+          {tooLarge ? (
+            <p className="rounded-xl border border-rose-deep/40 bg-rose-deep/10 px-3 py-2.5 text-xs text-rose-deep">
+              This link is too large to share reliably (~{approxMb.toFixed(1)} MB) — it won't be copied. Remove a
+              few photos, or switch any uploaded music to a hosted link instead of an upload, then try again.
+            </p>
+          ) : (
+            <input
+              readOnly
+              value={shareUrl}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-ink/80 outline-none"
+            />
+          )}
+          <p className={`text-[11px] ${large ? 'text-rose-deep' : 'text-ink/40'}`}>
+            ~{approxMb < 0.1 ? `${Math.round(linkChars / 1000)} KB` : `${approxMb.toFixed(2)} MB`} link · everything
+            is embedded, nothing is uploaded to a server · fewer or smaller photos, and a hosted music link instead
+            of an upload, keep it well within a shareable size
+            {large && !tooLarge && ' — getting large, consider trimming a little'}
           </p>
         </div>
       )}

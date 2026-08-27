@@ -10,7 +10,11 @@ interface MusicPickerProps {
 
 type Mode = 'link' | 'upload'
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024 // 8 MB — larger files risk breaking the shareable link
+// Uploaded audio is base64-encoded straight into the share link's URL, with no
+// compression possible for audio the way photos get compressed. Anything much
+// bigger than this produces a URL long enough to fail to open in practice —
+// this is deliberately sized for a short sound bite, not a song.
+const MAX_UPLOAD_BYTES = 600 * 1024 // 600 KB
 
 export default function MusicPicker({ value, onChange }: MusicPickerProps) {
   const isUpload = value.startsWith('data:')
@@ -33,7 +37,7 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
     setError('')
     if (file.size > MAX_UPLOAD_BYTES) {
       setError(
-        `That file is ${(file.size / 1024 / 1024).toFixed(1)} MB — please choose something under 8 MB, or use a hosted link instead for full songs.`,
+        `That file is ${(file.size / 1024).toFixed(0)} KB — please keep uploads under ${Math.round(MAX_UPLOAD_BYTES / 1024)} KB (a short clip, not a full song), or use a hosted link instead.`,
       )
       return
     }
@@ -128,8 +132,8 @@ export default function MusicPicker({ value, onChange }: MusicPickerProps) {
 
       <p className="mt-1.5 text-xs text-ink/40">
         {mode === 'upload'
-          ? 'Best for a short clip (under ~1–2 MB) — uploaded audio is embedded directly in the share link, so larger files make it longer to open, especially on iOS. For a full song, use a hosted link instead.'
-          : 'Link to a royalty-free MP3 you have rights to use.'}{' '}
+          ? 'For a short sound bite only (a few seconds, under 600 KB) — uploaded audio is embedded directly in the share link, and a full song will make the link too long to open. For a full song, paste a hosted link instead.'
+          : 'Link to a royalty-free MP3 you have rights to use — this is the right choice for a full song, since it keeps the share link short.'}{' '}
         Leave blank to skip music.
       </p>
     </div>
